@@ -1,0 +1,12 @@
+Change log for randpass
+=======================
+
+1.00 Fri 20 Jun 2003
+   - First implementation.
+
+1.01 Sat 21 Jun 2003
+   - Removed references to non-existent Base-64 option.
+   - Fixed some packaging details.
+   - Added :ALPHA and :ALPHANUM character sets.
+   - First public release.
+

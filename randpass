@@ -1,0 +1,261 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+
+use vars qw($VERSION);
+
+$VERSION = 1.01;
+
+sub emit;
+sub msg;
+sub warning;
+sub error;
+sub done;
+
+my $num_warnings = 0;
+
+my $phrase_len = 0;
+my $size = 5;
+my ($min_word_len, $max_word_len);
+my $source = '/usr/share/dict/words';
+my %charset = (
+    ':std' => [ 'A'..'H', 'J'..'N', 'P'..'Z', ('a'..'n', 'p'..'z') x 2, '2'..'9' ],
+    ':alpha' => [ 'A'..'Z', 'a'..'z' ],
+    ':ALPHA' => [ 'A'..'Z' ],
+    ':alphanum' => [ 'A'..'Z', 'a'..'z', '0'..'9' ],
+    ':ALPHANUM' => [ 'A'..'Z', '0'..'9' ],
+    ':num' => [ '0'..'9' ],
+    ':hex' => [ '0'..'9', 'a'..'f' ],
+    ':HEX' => [ '0'..'9', 'A'..'F' ],
+    ':bin' => [ "\000".."\777" ],
+    ':bin7' => [ "\000".."\377" ],
+);
+my $chars = ':std';
+my $join = ' ';
+my $help = 0;
+
+while (@ARGV) {
+    my $arg = shift;
+    if      ( $arg =~ /^-w|--word$/   ) {
+        $phrase_len = 0;
+    } elsif ( $arg =~ /^-p|--phrase$/ ) {
+        $phrase_len = shift || error "Missing phrase length value";
+    } elsif ( $arg =~ /^-s|--source$/ ) {
+        $source = shift || error "Missing source value";
+    } elsif ( $arg =~ /^-l|--word-length$/ ) {
+        my $len = shift || error "Missing length value(s)";
+        $len =~ /^(\d+)(-(\d+))?$/
+            or error "Bad length spec: $arg";
+        ($min_word_len, $max_word_len) = ($1, $3);
+        $min_word_len ||= 3;
+        $max_word_len ||= $min_word_len;
+    } elsif ( $arg =~ /^-c|--chars$/  ) {
+        $chars = shift || error "Invalid chars";
+    } elsif ( $arg =~ /^-j|--join$/  ) {
+        $join = shift;
+        error "Invalid join" unless defined $join;
+    } elsif ( $arg =~ /^-h|--help$/  ) {
+        $help = 1;
+    } else {
+        error "Unknown option: $arg";
+        exit 1;
+    }
+}
+
+($min_word_len, $max_word_len) = $phrase_len ? (4,7) : (7,14)
+    unless defined $min_word_len;
+
+my @chars = exists $charset{$chars} ? @{$charset{$chars}} : split //, $chars;
+
+if ($help) {
+
+    msg "Sorry, you'll have to read my source code for help";
+    done;
+    
+} elsif ($phrase_len) {
+
+    # --- Read in all lines of length $size
+    open SOURCE, $source
+        or error "Couldn't open source file '$source'";
+    my @words;
+    while (<SOURCE>) {
+        next unless /^[a-z]/;
+        chomp;
+        next unless length() >= $min_word_len && length() <= $max_word_len;
+        push @words, $_;
+    }
+    close SOURCE;
+    
+    # --- Pick words randomly
+    my @phrase;
+    for (1..$phrase_len) {
+        my $word;
+        my $tries = scalar @words;
+        until (defined $word or $tries-- == 0) {
+            my $r = rand @words;
+            $word = $words[$r];
+            undef $words[$r];
+        }
+        error "Source doesn't have enough suitable words to finish the passphrase"
+            unless defined $word;
+        push @phrase, $word;
+    }
+    print join($join, @phrase), "\n";
+    
+} else {
+
+    my $password = join '', @chars[
+        map { rand @chars }
+        ( 1..rand_in_range($min_word_len, $max_word_len) )
+    ];
+    print "$password\n";
+    
+}
+
+sub rand_in_range {
+    my ($min, $max) = @_;
+    return $min + int rand($max - $min + 1);
+}
+
+sub emit { print STDERR @_ }
+
+sub msg { emit map { "$_\n" } @_ }
+
+sub warning {
+    $num_warnings++;
+    emit "WARNING ($num_warnings): ", map { "$_\n" } @_;
+}
+
+sub error {
+    emit 'ERROR: ', map { "$_\n" } @_;
+    exit 1
+}
+
+sub done { exit 0 }
+
+
+=head1 NAME
+
+randpass - generate a random password or passphrase
+
+=head1 SYNOPSIS
+
+randpass [ -w | -p numwords ] [ -l numchars ] [ -c chars ] [ -s sourcefile ]
+
+randpass [ --word | --phrase numwords ] [ --word-length numchars ] [ --chars chars ] [ --source sourcefile ]
+
+=head1 DESCRIPTION
+
+Generate a random password or passphrase in a particular `style'.
+
+=head1 OPTIONS
+
+=over 4
+
+=item -w | --word
+
+Generate a password (the default).
+
+=item -p | --phrase
+
+Generate a passphrase of the specified number of words.
+
+=item -c | --chars
+
+The set of characters (specified as a string) used in generating a password.
+
+You may specify a named set.  Choose among these...
+
+=over 4
+
+=item :std
+
+  ('A'..'H', 'J'..'N', 'P'..'Z', ('a'..'n', 'p'..'z') x 2, '2'..'9')
+
+=item :alpha
+
+  ('A'..'Z', 'a'..'z' )
+
+=item :alphanum
+
+  ('A'..'Z', 'a'..'z', '0'..'9' )
+
+=item :num
+
+  ('0'..'9' )
+
+=item :hex
+
+Hexadecimal digits (lowercase).
+
+  ('0'..'9', 'a'..'f' )
+
+=item :HEX
+
+Hexadecimal digits (uppercase).
+
+  ('0'..'9', 'A'..'F' )
+
+=item :bin
+
+Binary data (bytes 0 through 255).
+
+  ( "\000".."\777" )
+
+=item :bin7
+
+Binary data (bytes 0 through 127).
+
+  ( "\000".."\377" )
+
+=item -l | --word-length
+
+The length of the password, or of each word in the passphrase.
+
+If a range is specified (e.g., C<--word-length 8-14>) then the length
+of the password (or of the words in the passphrase) will fall randomly
+within that range (including both endpoints).
+
+=item -s | --source
+
+Specify the source file from which words will be drawn in generating
+a passphrase.  This file will typically consist of a single word
+per line (but creative uses of C<randpass> may do otherwise for interesting
+results).
+
+The default is C</usr/share/dict/words>.  The special file name C<->
+may be used to specify standard input.
+
+Note: If the source file doesn't have enough lines (of sufficient length)
+to generate the full passphrase, the program exits with code 1 and prints
+a suitable error message to standard output.
+
+=item -j | --join
+
+When generating a passphrase, connect the words with the specified
+string rather than a space.
+
+=item -h | --help
+
+Display help.
+
+=back
+
+=back
+
+=head1 VERSION
+
+1.01
+
+=head1 AUTHOR
+
+Paul Hoffman < nkuitse AT cpan DOT org >
+
+=head1 COPYRIGHT
+
+Copyright 2003 Paul M. Hoffman.  All rights reserved.
+
+This script is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
