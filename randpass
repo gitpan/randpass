@@ -5,7 +5,7 @@ use warnings;
 
 use vars qw($VERSION);
 
-$VERSION = 1.01;
+$VERSION = 1.02;
 
 sub emit;
 sub msg;
@@ -15,6 +15,7 @@ sub done;
 
 my $num_warnings = 0;
 
+my $count = 1;
 my $phrase_len = 0;
 my $size = 5;
 my ($min_word_len, $max_word_len);
@@ -28,8 +29,8 @@ my %charset = (
     ':num' => [ '0'..'9' ],
     ':hex' => [ '0'..'9', 'a'..'f' ],
     ':HEX' => [ '0'..'9', 'A'..'F' ],
-    ':bin' => [ "\000".."\777" ],
-    ':bin7' => [ "\000".."\377" ],
+    ':bin' => [ "\x00".."\xFF" ],
+    ':bin7' => [ "\x00".."\x7F" ],
 );
 my $chars = ':std';
 my $join = ' ';
@@ -52,6 +53,12 @@ while (@ARGV) {
         $max_word_len ||= $min_word_len;
     } elsif ( $arg =~ /^-c|--chars$/  ) {
         $chars = shift || error "Invalid chars";
+    } elsif ( $arg =~ /^-n|--count$/  ) {
+        $count = shift;
+        error "Invalid count"
+            unless defined $count
+            and $count =~ /^\d+$/
+            and $count > 0;
     } elsif ( $arg =~ /^-j|--join$/  ) {
         $join = shift;
         error "Invalid join" unless defined $join;
@@ -69,11 +76,14 @@ while (@ARGV) {
 my @chars = exists $charset{$chars} ? @{$charset{$chars}} : split //, $chars;
 
 if ($help) {
-
+    
+    # XXX Not very helpful
     msg "Sorry, you'll have to read my source code for help";
     done;
     
-} elsif ($phrase_len) {
+}
+
+if ($phrase_len) {
 
     # --- Read in all lines of length $size
     open SOURCE, $source
@@ -88,28 +98,32 @@ if ($help) {
     close SOURCE;
     
     # --- Pick words randomly
-    my @phrase;
-    for (1..$phrase_len) {
-        my $word;
-        my $tries = scalar @words;
-        until (defined $word or $tries-- == 0) {
-            my $r = rand @words;
-            $word = $words[$r];
-            undef $words[$r];
+    while ($count--) {
+        my @phrase;
+        for (1..$phrase_len) {
+            my $word;
+            my $tries = scalar @words;
+            until (defined $word or $tries-- == 0) {
+                my $r = rand @words;
+                $word = $words[$r];
+                undef $words[$r];
+            }
+            error "Source doesn't have enough suitable words to finish the passphrase"
+                unless defined $word;
+            push @phrase, $word;
         }
-        error "Source doesn't have enough suitable words to finish the passphrase"
-            unless defined $word;
-        push @phrase, $word;
+        print join($join, @phrase), "\n";
     }
-    print join($join, @phrase), "\n";
     
 } else {
-
-    my $password = join '', @chars[
-        map { rand @chars }
-        ( 1..rand_in_range($min_word_len, $max_word_len) )
-    ];
-    print "$password\n";
+    
+    while ($count--) {
+        my $password = join '', @chars[
+            map { rand @chars }
+            ( 1..rand_in_range($min_word_len, $max_word_len) )
+        ];
+        print "$password\n";
+    }
     
 }
 
@@ -137,41 +151,61 @@ sub done { exit 0 }
 
 =head1 NAME
 
-randpass - generate a random password or passphrase
+randpass - generate random passwords and passphrases
 
 =head1 SYNOPSIS
 
-randpass [ -w | -p numwords ] [ -l numchars ] [ -c chars ] [ -s sourcefile ]
-
-randpass [ --word | --phrase numwords ] [ --word-length numchars ] [ --chars chars ] [ --source sourcefile ]
+randpass [ options ]
 
 =head1 DESCRIPTION
 
-Generate a random password or passphrase in a particular `style'.
+Generate random passwords and passphrases in a particular `style'.
 
 =head1 OPTIONS
 
 =over 4
 
-=item -w | --word
+=item -w, --word
 
-Generate a password (the default).
+Generate passwords (the default).
 
-=item -p | --phrase
+=item -p, --phrase num
 
-Generate a passphrase of the specified number of words.
+Generate passphrases with the specified number of words.  The passphrase
+that is generated will not contain duplicate words (e.g., C<urial hayseed
+dumpish urial>).  This may not be a range.
 
-=item -c | --chars
+=item -n, --count num
 
-The set of characters (specified as a string) used in generating a password.
+Generate the specified number of passwords or passphrases.  This may not
+be a range.
 
-You may specify a named set.  Choose among these...
+=item -l, --word-length num_or_range
+
+The length of the password, or of each word in the passphrase.
+
+If a range is specified (e.g., C<--word-length 8-14>) then the length
+of the password (or of the words in the passphrase) will fall randomly
+within that range (including both endpoints).  Half-open ranges (e.g.,
+C<--word-length 3->) are not allowed.
+
+The default is 7-14 for passwords and 4-7 for passphrases.
+
+=item -c, --chars string_or_special
+
+The set of characters (specified as a sequence of characters) used in
+generating a password.  This is currently ignored if passphrases are being
+generated.
+
+You may specify a named set instead.  Choose among these...
 
 =over 4
 
 =item :std
 
   ('A'..'H', 'J'..'N', 'P'..'Z', ('a'..'n', 'p'..'z') x 2, '2'..'9')
+
+This is the default.
 
 =item :alpha
 
@@ -201,23 +235,15 @@ Hexadecimal digits (uppercase).
 
 Binary data (bytes 0 through 255).
 
-  ( "\000".."\777" )
+  ( "\x00".."\xFF" )
 
 =item :bin7
 
 Binary data (bytes 0 through 127).
 
-  ( "\000".."\377" )
+  ( "\x00".."\x7F" )
 
-=item -l | --word-length
-
-The length of the password, or of each word in the passphrase.
-
-If a range is specified (e.g., C<--word-length 8-14>) then the length
-of the password (or of the words in the passphrase) will fall randomly
-within that range (including both endpoints).
-
-=item -s | --source
+=item -s, --source file_name
 
 Specify the source file from which words will be drawn in generating
 a passphrase.  This file will typically consist of a single word
@@ -229,14 +255,14 @@ may be used to specify standard input.
 
 Note: If the source file doesn't have enough lines (of sufficient length)
 to generate the full passphrase, the program exits with code 1 and prints
-a suitable error message to standard output.
+a suitable error message to standard error.
 
-=item -j | --join
+=item -j, --join string
 
 When generating a passphrase, connect the words with the specified
 string rather than a space.
 
-=item -h | --help
+=item -h, --help
 
 Display help.
 
@@ -246,7 +272,7 @@ Display help.
 
 =head1 VERSION
 
-1.01
+1.02
 
 =head1 AUTHOR
 

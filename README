@@ -26,6 +26,11 @@ To install this module, type the following:
    make test
    make install
 
+To install somewhere other than the default (/usr/bin in my case),
+do something like this:
+
+   make install INST_SCRIPT=/usr/local/bin
+
 
 DEPENDENCIES
 ------------

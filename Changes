@@ -10,3 +10,8 @@ Change log for randpass
    - Added :ALPHA and :ALPHANUM character sets.
    - First public release.
 
+1.02 Sat 04 Jul 2003
+   - Fixed specification of :bin and :bin7
+   - Added option -n | --count
+   - Added tests for most options
+
