@@ -2,6 +2,18 @@
 
 # Change log for randpass
 
+- date: 2009-03-29
+  version: 1.08
+  changes:
+    - Fixed README and this change log
+    - Added to-do list
+
+- date: 2009-03-29
+  version: 1.07
+  changes:
+    - Added options -C, -r, and -M
+    - Fixed bug in :bin and :bin7 character sets
+
 - date: 2005-05-07
   changes:
     - Brought README up to date

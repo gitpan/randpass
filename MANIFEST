@@ -1,12 +1,9 @@
-.cvsignore
-Changes
+CHANGES
 MANIFEST
 Makefile
 README
-TAGS
+TODO
 randpass
-randpass-1.07.tar.gz
-randpass.1
 t/k-words.txt
 t/option-c-01.t
 t/option-c-alpha.t

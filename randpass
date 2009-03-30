@@ -9,7 +9,7 @@ use Getopt::Long qw(:config posix_default gnu_compat no_ignore_case bundling);
 use vars qw($PROGRAM $VERSION);
 
 $PROGRAM = basename($0);
-$VERSION = '1.07';
+$VERSION = '1.08';
 
 $| = 1;
 
