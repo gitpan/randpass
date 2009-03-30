@@ -1,8 +1,12 @@
+.cvsignore
 Changes
-Makefile.PL
 MANIFEST
+Makefile
 README
+TAGS
 randpass
+randpass-1.07.tar.gz
+randpass.1
 t/k-words.txt
 t/option-c-01.t
 t/option-c-alpha.t

@@ -1,0 +1,30 @@
+
+randpass,752
+sub emit;emit;16,247
+sub msg;msg;17,257
+sub warning;warning;18,266
+sub error;error;19,279
+sub done;done;20,290
+my $num_warnings num_warnings24,323
+my $count count26,346
+my $phrase_len phrase_len27,361
+my $size size28,381
+my ($min_word_len, $max_word_len)29,395
+my $source source30,430
+my @alpha alpha32,469
+my @ALPHA ALPHA33,491
+my @num num34,519
+my %charset charset36,536
+my $chars chars49,1074
+my $join join50,1094
+my $verbose;verbose51,1110
+my @chars chars80,1923
+sub rand_in_range rand_in_range133,3243
+sub emit emit138,3337
+sub msg msg140,3367
+sub warning warning142,3403
+sub error error147,3498
+sub usage usage152,3563
+sub version version157,3637
+sub help help163,3743
+sub done done185,4648

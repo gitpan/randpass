@@ -8,10 +8,22 @@ SYNOPSIS
 --------
 
    randpass
-      [ -w | -p numwords ]   [ --word | --phrase numwords ]
-      [ -l numchars      ]   [ --word-length nchars ]
-      [ -c chars         ]   [ --chars chars ]
-      [ -s sourcefile    ]   [ --source srcfile ]
+      [ -n num           ]   [ --count num 				    ]
+      [ -w | -p numwords ]   [ --word | --phrase numwords 	]
+      [ -l numchars      ]   [ --word-length nchars 		]
+      [ -c chars         ]   [ --chars chars 				]
+      [ -s sourcefile    ]   [ --source srcfile 			]
+      [ -j string        ]   [ --join string 				]
+      [ -K 				 ]   [ --nkuitse 					]
+      [ -F 				 ]	 [ --freli 						]
+
+
+  -F, --freli            Use FRELI (same as -s /usr/share/dict/freli)
+  -j, --join             String to use in joining words in a passphrase
+  -K, --nkuitse          Use the author's favorite options by default
+  -v, --verbose          Be verbose
+  -h, --help             Print this help information
+  -V, --version          Print version information
 
 See the script documentation for more information.
 
@@ -32,8 +44,8 @@ do something like this:
    make install INST_SCRIPT=/usr/local/bin
 
 
-DEPENDENCIES
-------------
+PREREQUISITES
+-------------
 
 None.
 
